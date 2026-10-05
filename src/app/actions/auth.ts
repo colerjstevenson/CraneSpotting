@@ -18,6 +18,22 @@ function validEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function signupErrorMessage(code: string | undefined, message: string) {
+  const detail = `${code ?? ""} ${message}`.toLowerCase();
+
+  if (detail.includes("rate limit") || detail.includes("too many requests")) {
+    return "Too many sign-up emails were requested. Wait a few minutes, then try again.";
+  }
+  if (detail.includes("redirect") && detail.includes("url")) {
+    return "Sign-up links are not configured for this site yet. Please contact the site owner.";
+  }
+  if (detail.includes("email") && (detail.includes("send") || detail.includes("smtp") || detail.includes("provider"))) {
+    return "Sign-up email delivery is temporarily unavailable. Please contact the site owner.";
+  }
+
+  return "We couldn't send that sign-up link. Check your details and try again.";
+}
+
 export async function requestSignupLink(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const username = String(formData.get("username") ?? "").trim().toLowerCase();
   const displayName = String(formData.get("displayName") ?? "").trim();
@@ -52,7 +68,14 @@ export async function requestSignupLink(_state: AuthActionState, formData: FormD
       },
     });
 
-    if (error) return { status: "error", message: "We couldn't send that sign-up link. Check your details and try again." };
+    if (error) {
+      console.error("Signup link request failed", {
+        code: error.code,
+        status: error.status,
+        message: error.message,
+      });
+      return { status: "error", message: signupErrorMessage(error.code, error.message) };
+    }
     return { status: "success", message: "Check your inbox for a link to finish joining Crane Spotting." };
   } catch {
     return { status: "error", message: "Account sign-in is unavailable right now. Check the Supabase setup and try again." };
