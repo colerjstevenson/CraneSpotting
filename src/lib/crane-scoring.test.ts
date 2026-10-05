@@ -65,6 +65,23 @@ test("reduces points for suspected stock or reused photography", () => {
   assert.equal(result.breakdown.authenticity_multiplier, 0.25);
 });
 
+test("caps file submissions at a 0.75 authenticity multiplier", () => {
+  const result = calculateCraneScore(analysis(), 0.75);
+
+  assert.equal(result.accepted, true);
+  if (!result.accepted) return;
+  assert.equal(result.score, 53);
+  assert.equal(result.breakdown.authenticity_multiplier, 0.75);
+});
+
+test("retains stricter authenticity deductions for file submissions", () => {
+  const result = calculateCraneScore(analysis({ likelyStockOrReused: true }), 0.75);
+
+  assert.equal(result.accepted, true);
+  if (!result.accepted) return;
+  assert.equal(result.breakdown.authenticity_multiplier, 0.25);
+});
+
 test("accepts the confidence threshold and rejects values below it", () => {
   assert.equal(calculateCraneScore(analysis({ confidence: 0.7 })).accepted, true);
   assert.deepEqual(calculateCraneScore(analysis({ confidence: 0.699 })), {

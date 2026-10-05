@@ -376,6 +376,7 @@ body::before { display: none; }
 .camera-button--primary { background: var(--lime); }
 .camera-button--primary:hover:not(:disabled) { background: var(--coral); }
 .camera-button--secondary { background: var(--white); }
+.camera-file-input { display: none; }
 .camera-review-label { margin: 0; color: var(--muted); font-size: 9px; font-weight: 700; }
 .camera-feedback { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .camera-feedback--error { padding: 10px; border: 2px solid var(--ink); background: #ffc9e1; color: var(--ink); }

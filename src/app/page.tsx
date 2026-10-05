@@ -26,7 +26,7 @@ export default function Home() {
           <p className="point-guide__bonuses"><strong>Earn more:</strong> +10 each for prominence, a full-crane photo, and interesting composition; +5 per additional crane.</p>
           <div className="point-guide__authenticity">
             <strong>Photo context</strong>
-            <span>Live scene ×1 · physical display ×0.5 · uncertain ×0.75 · digital or suspected stock/reuse ×0.25</span>
+            <span>Live scene ×1 · file upload max ×0.75 · physical display ×0.5 · uncertain ×0.75 · digital or suspected stock/reuse ×0.25</span>
           </div>
           <p className="point-guide__footnote">Photos need at least 70% model confidence. Artwork counts when the physical piece is photographed in its real setting.</p>
         </aside>

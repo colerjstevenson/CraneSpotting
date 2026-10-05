@@ -2,12 +2,48 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Check, RotateCcw, Upload } from "lucide-react";
+import { Camera, Check, FolderOpen, RotateCcw, Upload } from "lucide-react";
 import { submitCrane } from "@/app/actions/submissions";
 
 const dailyLimit = 3;
 const maxImageBytes = 5 * 1024 * 1024;
 const maxAnalysisImageBytes = 256 * 1024;
+
+async function preparePhoto(canvas: HTMLCanvasElement, filename: string) {
+  const photoCanvas = document.createElement("canvas");
+  let photoBlob: Blob | null = null;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const scale = 0.82 ** attempt;
+    photoCanvas.width = Math.max(1, Math.round(canvas.width * scale));
+    photoCanvas.height = Math.max(1, Math.round(canvas.height * scale));
+    const context = photoCanvas.getContext("2d");
+    if (!context) throw new Error("We couldn't prepare that photo. Try again.");
+    context.drawImage(canvas, 0, 0, photoCanvas.width, photoCanvas.height);
+    photoBlob = await new Promise((resolve) => photoCanvas.toBlob(resolve, "image/jpeg", 0.84 - attempt * 0.1));
+    if (photoBlob && photoBlob.size <= maxImageBytes) break;
+  }
+
+  if (!photoBlob || photoBlob.type !== "image/jpeg" || photoBlob.size > maxImageBytes) {
+    throw new Error("This photo is too large to submit. Try a closer, simpler shot.");
+  }
+
+  const analysisCanvas = document.createElement("canvas");
+  const analysisScale = Math.min(1, 512 / Math.max(photoCanvas.width, photoCanvas.height));
+  analysisCanvas.width = Math.max(1, Math.round(photoCanvas.width * analysisScale));
+  analysisCanvas.height = Math.max(1, Math.round(photoCanvas.height * analysisScale));
+  const analysisContext = analysisCanvas.getContext("2d");
+  if (!analysisContext) throw new Error("We couldn't prepare this photo for crane analysis. Try again.");
+  analysisContext.drawImage(photoCanvas, 0, 0, analysisCanvas.width, analysisCanvas.height);
+  const analysisBlob = await new Promise<Blob | null>((resolve) => analysisCanvas.toBlob(resolve, "image/jpeg", 0.58));
+  if (!analysisBlob || analysisBlob.size > maxAnalysisImageBytes) {
+    throw new Error("We couldn't prepare this photo for crane analysis. Try again.");
+  }
+
+  return {
+    photo: new File([photoBlob], filename, { type: "image/jpeg" }),
+    analysisPhoto: new File([analysisBlob], "crane-analysis.jpg", { type: "image/jpeg" }),
+  };
+}
 
 type CraneCameraProps = {
   initialAttemptsToday: number | null;
@@ -23,9 +59,11 @@ type SubmissionSuccess = {
 export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
   const [analysisPhoto, setAnalysisPhoto] = useState<File | null>(null);
+  const [photoSource, setPhotoSource] = useState<"camera" | "file">("camera");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState("");
   const [isOpening, setIsOpening] = useState(false);
@@ -118,45 +156,49 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
     context.drawImage(video, cropLeft, cropTop, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
 
     try {
-      let photoBlob: Blob | null = null;
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        photoBlob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.84 - attempt * 0.1));
-        if (photoBlob && photoBlob.size <= maxImageBytes) break;
-        canvas.width = Math.round(canvas.width * 0.82);
-        canvas.height = Math.round(canvas.height * 0.82);
-        context.drawImage(video, cropLeft, cropTop, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
-      }
-
-      if (!photoBlob || photoBlob.type !== "image/jpeg" || photoBlob.size > maxImageBytes) {
-        setCameraError("This photo is too large to submit. Try a closer, simpler shot.");
-        return;
-      }
-
-      const nextPhoto = new File([photoBlob], "crane.jpg", { type: "image/jpeg" });
-      const analysisCanvas = document.createElement("canvas");
-      const analysisScale = Math.min(1, 512 / Math.max(canvas.width, canvas.height));
-      analysisCanvas.width = Math.max(1, Math.round(canvas.width * analysisScale));
-      analysisCanvas.height = Math.max(1, Math.round(canvas.height * analysisScale));
-      const analysisContext = analysisCanvas.getContext("2d");
-      if (!analysisContext) {
-        setCameraError("We couldn't prepare this photo for crane analysis. Try again.");
-        return;
-      }
-      analysisContext.drawImage(canvas, 0, 0, analysisCanvas.width, analysisCanvas.height);
-      const analysisBlob = await new Promise<Blob | null>((resolve) => analysisCanvas.toBlob(resolve, "image/jpeg", 0.58));
-      if (!analysisBlob || analysisBlob.size > maxAnalysisImageBytes) {
-        setCameraError("We couldn't prepare this photo for crane analysis. Try again.");
-        return;
-      }
-
-      setPhoto(nextPhoto);
-      setAnalysisPhoto(new File([analysisBlob], "crane-analysis.jpg", { type: "image/jpeg" }));
-      setPreviewUrl(URL.createObjectURL(nextPhoto));
+      const prepared = await preparePhoto(canvas, "crane.jpg");
+      setPhoto(prepared.photo);
+      setAnalysisPhoto(prepared.analysisPhoto);
+      setPhotoSource("camera");
+      setPreviewUrl(URL.createObjectURL(prepared.photo));
       setStream(null);
       setCameraError("");
       setMessage("");
-    } catch {
-      setCameraError("We couldn't prepare that photo. Try again.");
+    } catch (error) {
+      setCameraError(error instanceof Error ? error.message : "We couldn't prepare that photo. Try again.");
+    }
+  }
+
+  async function choosePhoto(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+    setCameraError("");
+    setMessage("");
+    setIsOpening(true);
+
+    let bitmap: ImageBitmap | null = null;
+    try {
+      bitmap = await createImageBitmap(file);
+      const canvas = document.createElement("canvas");
+      const scale = Math.min(1, 1920 / Math.max(bitmap.width, bitmap.height));
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("We couldn't prepare that photo. Try another image.");
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+      const prepared = await preparePhoto(canvas, "crane.jpg");
+      setPhoto(prepared.photo);
+      setAnalysisPhoto(prepared.analysisPhoto);
+      setPhotoSource("file");
+      setPreviewUrl(URL.createObjectURL(prepared.photo));
+      setCameraError("");
+    } catch (error) {
+      setCameraError(error instanceof Error ? error.message : "We couldn't open that image. Choose a different file.");
+    } finally {
+      bitmap?.close();
+      setIsOpening(false);
     }
   }
 
@@ -164,6 +206,7 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPhoto(null);
     setAnalysisPhoto(null);
+    setPhotoSource("camera");
     setPreviewUrl(null);
     setSuccess(null);
     setMessage("");
@@ -175,6 +218,7 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
     const formData = new FormData();
     formData.set("image", photo);
     formData.set("analysisImage", analysisPhoto);
+    formData.set("source", photoSource);
     setMessage("");
 
     startTransition(async () => {
@@ -202,6 +246,7 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPhoto(null);
     setAnalysisPhoto(null);
+    setPhotoSource("camera");
     setPreviewUrl(null);
     setSuccess(null);
     setMessage("");
@@ -263,10 +308,17 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
               </div>
             </>
           ) : (
-            <button className="camera-button camera-button--primary" type="button" onClick={openCamera} disabled={remaining === 0 || isOpening}>
-              <Camera size={18} aria-hidden="true" /> {remaining === 0 ? "No shots left today" : isOpening ? "Opening camera..." : "Open camera"}
-            </button>
+            <>
+              <button className="camera-button camera-button--primary" type="button" onClick={openCamera} disabled={remaining === 0 || isOpening}>
+                <Camera size={18} aria-hidden="true" /> {remaining === 0 ? "No shots left today" : isOpening ? "Preparing image..." : "Open camera"}
+              </button>
+              <button className="camera-button camera-button--secondary" type="button" onClick={() => fileInputRef.current?.click()} disabled={remaining === 0 || isOpening}>
+                <FolderOpen size={17} aria-hidden="true" /> Choose from files
+              </button>
+              <input ref={fileInputRef} className="camera-file-input" type="file" accept="image/*" aria-label="Choose a crane photo from your files" onChange={choosePhoto} />
+            </>
           )}
+          {previewUrl && photoSource === "file" && <p className="camera-feedback">File upload score multiplier: ×0.75 maximum.</p>}
           {cameraError && <p className="camera-feedback camera-feedback--error" role="alert">{cameraError}</p>}
           {message && <p className="camera-feedback camera-feedback--error" role="alert">{message}</p>}
           {remaining === null && <p className="camera-feedback" role="status">Daily count is unavailable; the server still checks the limit on submission.</p>}

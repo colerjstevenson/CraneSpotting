@@ -50,6 +50,7 @@ export async function submitCrane(formData: FormData): Promise<SubmissionActionR
   const player = await requirePlayer();
   const image = formData.get("image");
   const analysisImage = formData.get("analysisImage");
+  const maximumAuthenticityMultiplier = formData.get("source") === "file" ? 0.75 : 1;
 
   if (!(image instanceof File) || image.size === 0) {
     return { status: "error", message: "Take a photo before submitting." };
@@ -79,7 +80,7 @@ export async function submitCrane(formData: FormData): Promise<SubmissionActionR
 
   try {
     const analysis = await analyzeCrane(new Uint8Array(await analysisImage.arrayBuffer()));
-    const score = calculateCraneScore(analysis);
+    const score = calculateCraneScore(analysis, maximumAuthenticityMultiplier);
 
     const { error: uploadError } = await supabase.storage.from(bucket).upload(objectPath, image, {
       cacheControl: "31536000",

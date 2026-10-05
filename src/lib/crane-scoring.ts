@@ -24,7 +24,7 @@ const authenticityMultipliers: Record<CaptureContext, number> = {
   uncertain: 0.75,
 };
 
-export function calculateCraneScore(analysis: CraneAnalysis): CraneScore {
+export function calculateCraneScore(analysis: CraneAnalysis, maximumAuthenticityMultiplier = 1): CraneScore {
   if (!analysis.isCrane || analysis.craneType === "none") {
     return { accepted: false, score: 0, breakdown: {}, reason: "not_crane" };
   }
@@ -42,9 +42,10 @@ export function calculateCraneScore(analysis: CraneAnalysis): CraneScore {
     return { accepted: false, score: 0, breakdown: {}, reason: "master_reproduction" };
   }
 
-  const authenticityMultiplier = analysis.likelyStockOrReused
+  const analysisMultiplier = analysis.likelyStockOrReused
     ? 0.25
     : authenticityMultipliers[analysis.captureContext];
+  const authenticityMultiplier = Math.min(analysisMultiplier, maximumAuthenticityMultiplier);
   if (isArtwork) {
     return {
       accepted: true,
