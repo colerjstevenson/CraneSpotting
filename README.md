@@ -25,7 +25,26 @@ Keep `SUPABASE_SERVICE_ROLE_KEY` server-only: never prefix it with `NEXT_PUBLIC_
 
 Player galleries have Cranes and Not Cranes tabs. Apply `20261004000800_rejected_submission_gallery.sql` before running the updated submission flow: rejected photos are now stored on submission attempts, without adding points or cranes to the leaderboard. Older rejected attempts remain visible with an unavailable-photo placeholder because their photos were not previously stored. Owners can hide photos in either tab.
 
-Email templates should use Supabase's standard confirmation link so the redirect returns to `/auth/confirm` with the PKCE code. The profile trigger stores the signup username and display name; public profile reads are enabled for future leaderboard use.
+Email templates should link directly to `/auth/confirm` with Supabase's token hash so sign-in works even when the email opens in a different browser or device. The callback also supports older PKCE code links, which require the browser that requested them. The profile trigger stores the signup username and display name; public profile reads are enabled for future leaderboard use.
+
+### Branded authentication emails
+
+The ready-to-paste HTML templates in `supabase/templates` match the site's aqua, blue, yellow, and coral palette. They use inline styles, presentation tables, system-font fallbacks, and no external images or fonts so the message remains readable when remote assets are blocked.
+
+In the Supabase dashboard, open **Authentication > Email Templates** and configure:
+
+| Template | Subject | HTML body |
+| --- | --- | --- |
+| Confirm sign up | Confirm your email - join the Crane Spotting spotters! | [`confirm-signup.html`](supabase/templates/confirm-signup.html) |
+| Magic Link | Your Crane Spotting sign-in link | [`magic-link.html`](supabase/templates/magic-link.html) |
+
+Copy each entire HTML file into its corresponding template body and save. These files are not automatically deployed by the app or database migrations. Keep email confirmation enabled for new accounts. Supabase selects Confirm sign up for a new user and Magic Link for an existing user, including an existing user requesting a link through the signup page.
+
+Keep `{{ .RedirectTo }}&amp;token_hash={{ .TokenHash }}&amp;type=email` unchanged in both the button and fallback link. The app always supplies a `/auth/confirm?next=...` redirect, so the template appends the token hash with `&amp;`. Supabase verifies `type=email` for both signup and sign-in tokens, without requiring the original browser's PKCE verifier cookie. Set Supabase's Site URL to your public `APP_URL` and allow `https://your-site/auth/confirm` and `https://your-site/auth/confirm?next=**` in Redirect URLs (also allow the equivalent localhost URLs for development). Disable click tracking in your SMTP provider so authentication URLs are not rewritten. The templates deliberately avoid a fixed expiry time: Supabase's configured email OTP expiry determines link lifetime.
+
+If every link says it is invalid or expired, paste these updated bodies into **both** Supabase email templates and request a fresh email after deployment. Previously sent emails still use their original links. Callback failures log only an error code/status, never the link or token; inspect Worker logs if fresh links still fail. Email security scanners can consume single-use links, so also check the SMTP provider's link-scanning settings.
+
+Before publishing, request a link from `/signup` with a fresh address and another from `/login` with an existing account. Check the actual delivered emails on desktop and mobile, follow fresh links in both the original browser and a different browser with no existing site cookies, and verify each establishes a session and returns to the requested page (signup defaults to `/submit`). Also check that ignored, expired, and already-used links cannot sign in. A browser HTML preview checks layout only, not email-client compatibility or delivery.
 
 Before sharing the app publicly, configure Supabase Auth email rate limits and CAPTCHA to reduce magic-link abuse.
 
