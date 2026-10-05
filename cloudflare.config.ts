@@ -12,7 +12,7 @@ export default defineConfig({
       AI: bindings.ai({ dev: { remote: true } }),
       NEXT_PUBLIC_SUPABASE_URL: bindings.secret(),
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: bindings.secret(),
-      APP_URL: bindings.secret(),
+      APP_URL: bindings.text("https://cranespotting.colerjstevenson.workers.dev/"),
       SUPABASE_SERVICE_ROLE_KEY: bindings.secret(),
     },
   }),
