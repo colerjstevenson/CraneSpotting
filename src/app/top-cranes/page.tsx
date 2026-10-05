@@ -62,12 +62,11 @@ export default async function TopCranesPage() {
   return (
     <>
       <section className="page-intro" aria-labelledby="top-cranes-title">
-        <p className="page-kicker">THE HEAVY HITTERS</p>
-        <h1 className="page-title" id="top-cranes-title">Top 5<br />Cranes</h1>
+        <h1 className="page-title" id="top-cranes-title">Hall of<br />Cranes</h1>
         <p className="page-description">The five highest-scoring crane sightings of all time.</p>
       </section>
       <section className="top-cranes" aria-label="All-time top five crane submissions">
-        <div className="top-cranes__banner"><Trophy size={17} aria-hidden="true" /><span>CRANE HALL OF FAME</span><span>NO POINTS FOR SECOND PLACE</span></div>
+        <div className="top-cranes__banner"><Trophy size={17} aria-hidden="true" /><span>Top 5 Cranes all time</span><span>NO POINTS FOR SECOND PLACE</span></div>
         {result.status === "ready" && result.cranes.length > 0 ? (
           <ol className="top-cranes__grid">
             {result.cranes.map((crane, index) => <CraneCard key={crane.id} crane={crane} rank={index + 1} />)}
