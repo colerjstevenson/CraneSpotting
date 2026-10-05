@@ -1,25 +1,41 @@
 import type { Metadata } from "next";
+import { ImageOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { SubmissionVisibilityControl } from "@/components/submission-visibility-control";
 import { getCurrentPlayer } from "@/lib/auth";
 import type { CraneType } from "@/lib/crane-analysis-contract";
-import { getPlayerProfile, type PlayerProfile } from "@/lib/player-profiles";
+import { getPlayerProfile, type PlayerGalleryTab, type PlayerProfile } from "@/lib/player-profiles";
 
 export const metadata: Metadata = { title: "Player profile" };
 export const dynamic = "force-dynamic";
 
-const craneTitles: Record<Exclude<CraneType, "none">, string> = {
+const craneTitles: Record<CraneType, string> = {
+  none: "Not a crane",
   bird: "Bird crane",
   construction: "Construction crane",
   artwork: "Crane artwork",
   master_crane: "Master Crane",
 };
 
+const rejectionTitles: Record<string, string> = {
+  not_crane: "No crane spotted",
+  low_confidence: "Could not verify a crane",
+  master_reproduction: "Master Crane reproduction",
+  artwork_not_physical: "Artwork not photographed in person",
+};
+
+function galleryHref(username: string, tab: PlayerGalleryTab, page = 1) {
+  const query = new URLSearchParams();
+  if (tab === "not-cranes") query.set("tab", tab);
+  if (page > 1) query.set("page", String(page));
+  return `/players/${username}${query.size ? `?${query}` : ""}`;
+}
+
 type PlayerProfilePageProps = {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ page?: string | string[] }>;
+  searchParams: Promise<{ page?: string | string[]; tab?: string | string[] }>;
 };
 
 function parsePage(value: string | string[] | undefined) {
@@ -40,16 +56,21 @@ function formatDate(value: string) {
 }
 
 function ProfileGallery({ profile, owner }: { profile: PlayerProfile; owner: boolean }) {
-  const profilePath = `/players/${profile.username}`;
+  const notCranes = profile.galleryTab === "not-cranes";
 
   return (
     <section className="player-gallery" aria-labelledby="player-gallery-title">
       <div className="player-gallery__heading">
         <div>
-          <h2 id="player-gallery-title">Crane gallery</h2>
+          <h2 id="player-gallery-title">Spotting gallery</h2>
         </div>
-        <span>{profile.cranes} {profile.cranes === 1 ? "CRANE" : "CRANES"}</span>
+        <span>{profile.galleryCount} {notCranes ? "REJECTED" : profile.galleryCount === 1 ? "CRANE" : "CRANES"}</span>
       </div>
+
+      <nav className="player-gallery__tabs" aria-label="Gallery category">
+        <Link href={galleryHref(profile.username, "cranes")} aria-current={!notCranes ? "page" : undefined}>Cranes</Link>
+        <Link href={galleryHref(profile.username, "not-cranes")} aria-current={notCranes ? "page" : undefined}>Not Cranes</Link>
+      </nav>
 
       {profile.submissions.length > 0 ? (
         <div className="player-gallery__grid">
@@ -66,25 +87,29 @@ function ProfileGallery({ profile, owner }: { profile: PlayerProfile; owner: boo
             return (
               <article className="player-gallery__item" key={submission.id}>
                 <div className={`player-gallery__image${submission.imageUrl ? "" : " player-gallery__image--placeholder"}`}>
-                  <Image
+                  {submission.craneType === "none" && !submission.imageUrl ? (
+                    <ImageOff size={48} aria-hidden="true" />
+                  ) : <Image
                     src={imageSource}
                     alt={submission.imageUrl ? imageDescription : ""}
                     fill
                     sizes="(max-width: 600px) 100vw, (max-width: 900px) 50vw, 33vw"
                     unoptimized={Boolean(submission.imageUrl)}
-                  />
+                  />}
                   {!submission.imageUrl && (
                     <span className="player-gallery__image-status">{imageDescription}</span>
                   )}
                 </div>
                 <div className="player-gallery__details">
                   <div className="player-gallery__scoreline">
-                    <span>{craneTitles[submission.craneType]}</span>
-                    <strong>{submission.score.toLocaleString("en-US")} PTS</strong>
+                    <span>{submission.rejectionReason
+                      ? rejectionTitles[submission.rejectionReason] ?? "Rejected"
+                      : craneTitles[submission.craneType]}</span>
+                    {!notCranes && <strong>{submission.score.toLocaleString("en-US")} PTS</strong>}
                   </div>
                   <time dateTime={submission.createdAt}>{formatDate(submission.createdAt)}</time>
                   {owner && (
-                    <SubmissionVisibilityControl submissionId={submission.id} hidden={submission.imageHidden} />
+                    <SubmissionVisibilityControl submissionId={submission.id} hidden={submission.imageHidden} galleryTab={profile.galleryTab} />
                   )}
                 </div>
               </article>
@@ -92,19 +117,19 @@ function ProfileGallery({ profile, owner }: { profile: PlayerProfile; owner: boo
           })}
         </div>
       ) : (
-        <p className="player-gallery__empty">No cranes in this field collection yet.</p>
+        <p className="player-gallery__empty">{notCranes ? "No rejected photos yet." : "No cranes in this field collection yet."}</p>
       )}
 
       {profile.pageCount > 1 && (
-        <nav className="player-gallery__pagination" aria-label="Crane gallery pages">
+        <nav className="player-gallery__pagination" aria-label="Gallery pages">
           {profile.page > 1 ? (
-            <Link href={profile.page === 2 ? profilePath : `${profilePath}?page=${profile.page - 1}`}>
-              Newer cranes
+            <Link href={galleryHref(profile.username, profile.galleryTab, profile.page - 1)}>
+              Newer photos
             </Link>
           ) : <span />}
           <span>PAGE {profile.page} / {profile.pageCount}</span>
           {profile.page < profile.pageCount ? (
-            <Link href={`${profilePath}?page=${profile.page + 1}`}>Older cranes</Link>
+            <Link href={galleryHref(profile.username, profile.galleryTab, profile.page + 1)}>Older photos</Link>
           ) : <span />}
         </nav>
       )}
@@ -113,17 +138,18 @@ function ProfileGallery({ profile, owner }: { profile: PlayerProfile; owner: boo
 }
 
 export default async function PlayerProfilePage({ params, searchParams }: PlayerProfilePageProps) {
-  const [{ username }, { page: pageParam }, currentPlayer] = await Promise.all([
+  const [{ username }, { page: pageParam, tab: tabParam }, currentPlayer] = await Promise.all([
     params,
     searchParams,
     getCurrentPlayer(),
   ]);
   if (!/^[a-z0-9_]{3,20}$/.test(username)) notFound();
 
+  const galleryTab: PlayerGalleryTab = tabParam === "not-cranes" ? "not-cranes" : "cranes";
   const page = parsePage(pageParam);
-  if (page === null) redirect(`/players/${username}`);
+  if (page === null) redirect(galleryHref(username, galleryTab));
 
-  const result = await getPlayerProfile(username, page);
+  const result = await getPlayerProfile(username, page, galleryTab);
   if (result.status === "not-found") notFound();
 
   if (result.status !== "ready") {
@@ -144,7 +170,7 @@ export default async function PlayerProfilePage({ params, searchParams }: Player
 
   const { profile } = result;
   if (page > profile.pageCount) {
-    redirect(profile.pageCount === 1 ? `/players/${username}` : `/players/${username}?page=${profile.pageCount}`);
+    redirect(galleryHref(username, galleryTab, profile.pageCount));
   }
 
   const owner = currentPlayer?.id === profile.id;

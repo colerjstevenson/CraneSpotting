@@ -9,21 +9,25 @@ const pageSize = 12;
 
 type SubmissionRow = {
   id: string;
-  image_url: string;
+  image_url: string | null;
   image_hidden: boolean;
-  crane_type: Exclude<CraneType, "none">;
+  crane_type?: Exclude<CraneType, "none">;
+  rejection_reason?: string;
   score: number | string;
   created_at: string;
 };
 
 export type PlayerProfileSubmission = {
   id: string;
-  craneType: Exclude<CraneType, "none">;
+  craneType: CraneType;
+  rejectionReason: string | null;
   score: number;
   createdAt: string;
   imageHidden: boolean;
   imageUrl: string | null;
 };
+
+export type PlayerGalleryTab = "cranes" | "not-cranes";
 
 export type PlayerProfile = {
   id: string;
@@ -34,6 +38,8 @@ export type PlayerProfile = {
   cranes: number;
   bestCrane: { craneType: Exclude<CraneType, "none">; score: number } | null;
   submissions: PlayerProfileSubmission[];
+  galleryTab: PlayerGalleryTab;
+  galleryCount: number;
   page: number;
   pageCount: number;
 };
@@ -42,7 +48,7 @@ export type PlayerProfileResult =
   | { status: "ready"; profile: PlayerProfile }
   | { status: "not-configured" | "error" | "not-found" };
 
-export async function getPlayerProfile(username: string, page: number): Promise<PlayerProfileResult> {
+export async function getPlayerProfile(username: string, page: number, galleryTab: PlayerGalleryTab = "cranes"): Promise<PlayerProfileResult> {
   if (!isSupabaseConfigured()) return { status: "not-configured" };
 
   try {
@@ -65,6 +71,12 @@ export async function getPlayerProfile(username: string, page: number): Promise<
     if (!standing) return { status: "error" };
 
     const offset = (page - 1) * pageSize;
+    const galleryQuery = galleryTab === "not-cranes"
+      ? admin.from("crane_submission_attempts")
+        .select("id, image_url, image_hidden, rejection_reason, created_at", { count: "exact" })
+        .eq("outcome", "rejected")
+      : admin.from("crane_submissions")
+        .select("id, image_url, image_hidden, crane_type, score, created_at", { count: "exact" });
     const [bestResult, submissionsResult] = await Promise.all([
       admin
         .from("crane_submissions")
@@ -75,9 +87,7 @@ export async function getPlayerProfile(username: string, page: number): Promise<
         .order("id", { ascending: false })
         .limit(1)
         .maybeSingle(),
-      admin
-        .from("crane_submissions")
-        .select("id, image_url, image_hidden, crane_type, score, created_at")
+      galleryQuery
         .eq("user_id", player.id)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
@@ -90,9 +100,9 @@ export async function getPlayerProfile(username: string, page: number): Promise<
     }
 
     const rows = (submissionsResult.data ?? []) as SubmissionRow[];
-    const submissions = await Promise.all(rows.map(async (row) => {
+    const submissions = await Promise.all(rows.map(async (row): Promise<PlayerProfileSubmission> => {
       let imageUrl: string | null = null;
-      if (!row.image_hidden) {
+      if (!row.image_hidden && row.image_url) {
         try {
           const { data, error } = await admin.storage.from(bucket).createSignedUrl(row.image_url, 900);
           if (error) console.error("Failed to sign a profile gallery image:", error);
@@ -104,15 +114,17 @@ export async function getPlayerProfile(username: string, page: number): Promise<
 
       return {
         id: row.id,
-        craneType: row.crane_type,
-        score: Number(row.score),
+        craneType: row.crane_type ?? "none",
+        rejectionReason: row.rejection_reason ?? null,
+        score: Number(row.score ?? 0),
         createdAt: row.created_at,
         imageHidden: row.image_hidden,
         imageUrl,
       };
     }));
 
-    const pageCount = Math.max(1, Math.ceil(standing.cranes / pageSize));
+    const galleryCount = submissionsResult.count ?? 0;
+    const pageCount = Math.max(1, Math.ceil(galleryCount / pageSize));
     return {
       status: "ready",
       profile: {
@@ -129,6 +141,8 @@ export async function getPlayerProfile(username: string, page: number): Promise<
             }
           : null,
         submissions,
+        galleryTab,
+        galleryCount,
         page,
         pageCount,
       },

@@ -141,7 +141,8 @@ export async function analyzeCraneWithBinding(imageBytes: Uint8Array, ai: Cloudf
     });
 
     return parseClefAnalysis(result);
-  } catch {
+  } catch (error) {
+    console.error("Crane analysis failed:", error);
     throw new CraneAnalysisUnavailableError();
   }
 }

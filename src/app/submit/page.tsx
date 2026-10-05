@@ -13,11 +13,10 @@ export default async function SubmitPage() {
   return (
     <>
       <section className="page-intro" aria-labelledby="submit-title">
-        <p className="page-kicker">PHOTO BOOTH / LIVE</p>
         <h1 className="page-title" id="submit-title">Submit a<br />crane!</h1>
         <p className="page-description">Three shots a day. Make each one count.</p>
       </section>
-      <CraneCamera key={error ? "unavailable" : Number(data ?? 0)} initialAttemptsToday={error ? null : Number(data ?? 0)} />
+      <CraneCamera initialAttemptsToday={error ? null : Number(data ?? 0)} />
     </>
   );
 }

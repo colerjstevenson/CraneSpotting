@@ -715,12 +715,12 @@ Create user profiles showing:
 
 Add:
 
+* a top 5 Cranes of all time page
 * loading states
 * camera permission handling
 * animations
 * responsive design
 * install-to-home-screen support, with new icon using our crane svgs
-* the ability to Ch
 
 
 ---

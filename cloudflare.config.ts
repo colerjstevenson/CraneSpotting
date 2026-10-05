@@ -9,7 +9,11 @@ export default defineConfig({
     assets: { notFoundHandling: "none" },
     env: {
       ASSETS: bindings.assets(),
-      AI: bindings.ai(),
+      AI: bindings.ai({ dev: { remote: true } }),
+      NEXT_PUBLIC_SUPABASE_URL: bindings.secret(),
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: bindings.secret(),
+      APP_URL: bindings.secret(),
+      SUPABASE_SERVICE_ROLE_KEY: bindings.secret(),
     },
   }),
 });

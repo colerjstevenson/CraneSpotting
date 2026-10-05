@@ -23,6 +23,8 @@ Crane analysis uses Cloudflare Workers AI's Clef vision model through the bindin
 
 Keep `SUPABASE_SERVICE_ROLE_KEY` server-only: never prefix it with `NEXT_PUBLIC_`, expose it to the browser, or commit it. The server uses it only after authenticating the player and validating the result.
 
+Player galleries have Cranes and Not Cranes tabs. Apply `20261004000800_rejected_submission_gallery.sql` before running the updated submission flow: rejected photos are now stored on submission attempts, without adding points or cranes to the leaderboard. Older rejected attempts remain visible with an unavailable-photo placeholder because their photos were not previously stored. Owners can hide photos in either tab.
+
 Email templates should use Supabase's standard confirmation link so the redirect returns to `/auth/confirm` with the PKCE code. The profile trigger stores the signup username and display name; public profile reads are enabled for future leaderboard use.
 
 Before sharing the app publicly, configure Supabase Auth email rate limits and CAPTCHA to reduce magic-link abuse.
@@ -49,6 +51,8 @@ npm.cmd run start:vinext -- --host 127.0.0.1 --port 4173
 Run the build before starting the local Workers preview. To deploy manually, use `npm.cmd run deploy:vinext`; append `-- --dry-run` to validate the deployment configuration without publishing.
 
 For Cloudflare Workers Builds, configure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in the build environment. Configure those values, `APP_URL`, and `SUPABASE_SERVICE_ROLE_KEY` in the Worker runtime environment. Set `APP_URL` to the public HTTPS origin so magic-link redirects and metadata use the deployed site. The `AI` binding is declared in `cloudflare.config.ts`; do not add AI credentials.
+
+In the Cloudflare dashboard, select the `cranespotting` Worker. Add the runtime values as secrets under Settings > Variables and Secrets, matching the declarations in `cloudflare.config.ts`. Add the two `NEXT_PUBLIC_SUPABASE_*` values under Settings > Build > Variables and secrets as well, then rebuild and redeploy. The Supabase URL and publishable key are public even though their runtime bindings use secret storage; the service-role key must remain server-only. Local `.env.local` values are not automatically available to hosted builds. If the hosted site says account sign-in is not configured, one or both public Supabase values are missing from its build or runtime environment.
 
 ## Routes
 

@@ -81,24 +81,22 @@ export async function submitCrane(formData: FormData): Promise<SubmissionActionR
     const analysis = await analyzeCrane(new Uint8Array(await analysisImage.arrayBuffer()));
     const score = calculateCraneScore(analysis);
 
-    if (score.accepted) {
-      const { error: uploadError } = await supabase.storage.from(bucket).upload(objectPath, image, {
-        cacheControl: "31536000",
-        contentType: "image/jpeg",
-        upsert: false,
-      });
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(objectPath, image, {
+      cacheControl: "31536000",
+      contentType: "image/jpeg",
+      upsert: false,
+    });
 
-      if (uploadError) {
-        return { status: "error", message: "We couldn't store that photo. Please try again." };
-      }
-      uploaded = true;
+    if (uploadError) {
+      return { status: "error", message: "We couldn't store that photo. Please try again." };
     }
+    uploaded = true;
 
     const { data, error } = await createAdminClient().rpc("finalize_crane_submission", {
       p_user_id: player.id,
       p_accepted: score.accepted,
       p_rejection_reason: score.accepted ? null : score.reason,
-      p_image_path: score.accepted ? objectPath : null,
+      p_image_path: objectPath,
       p_crane_type: score.accepted ? analysis.craneType : null,
       p_ai_confidence: score.accepted ? analysis.confidence : null,
       p_score: score.accepted ? score.score : null,
@@ -111,6 +109,7 @@ export async function submitCrane(formData: FormData): Promise<SubmissionActionR
       if (error.message.includes("daily_limit_reached")) {
         return { status: "limit", message: "You've used all 3 crane submissions for today. Come back tomorrow." };
       }
+      console.error("Failed to finalize crane submission:", error);
       return { status: "error", message: "We couldn't submit that crane. Please try again." };
     }
 
@@ -122,6 +121,7 @@ export async function submitCrane(formData: FormData): Promise<SubmissionActionR
     }
 
     revalidatePath("/submit");
+    if (player.username) revalidatePath(`/players/${player.username}`);
     if (score.accepted) {
       revalidatePath("/");
       revalidatePath("/leaderboard");
@@ -138,7 +138,7 @@ export async function submitCrane(formData: FormData): Promise<SubmissionActionR
     }
 
     const rejectionMessages = {
-      not_crane: "No crane spotted. That shot still counts, so bring your next best crane photo.",
+      not_crane: "No crane spotted. Who are you trying to fool! Stop playing games!",
       low_confidence: "We couldn't confidently verify a crane in that photo. That shot still counts.",
       master_reproduction: "Master Crane needs to be spotted in the real world, not on a screen or as a reused image.",
       artwork_not_physical: "Crane artwork only counts when the physical artwork is photographed in the real world.",
@@ -155,6 +155,7 @@ export async function submitCrane(formData: FormData): Promise<SubmissionActionR
     if (error instanceof CraneAnalysisUnavailableError) {
       return { status: "error", message: "Crane analysis is unavailable right now. Please try again shortly." };
     }
+    console.error("Crane submission failed:", error);
     return { status: "error", message: "Submission is unavailable right now. Please try again shortly." };
   }
 }

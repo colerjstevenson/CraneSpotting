@@ -13,15 +13,17 @@ export async function setSubmissionVisibility(
   const player = await requirePlayer();
   const submissionId = formData.get("submissionId");
   const imageHiddenValue = formData.get("imageHidden");
+  const galleryTab = formData.get("galleryTab") ?? "cranes";
 
   if (typeof submissionId !== "string"
     || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(submissionId)
-    || (imageHiddenValue !== "true" && imageHiddenValue !== "false")) {
+    || (imageHiddenValue !== "true" && imageHiddenValue !== "false")
+    || (galleryTab !== "cranes" && galleryTab !== "not-cranes")) {
     return { message: "That photo could not be updated. Refresh the page and try again." };
   }
 
   const { data, error } = await createAdminClient()
-    .from("crane_submissions")
+    .from(galleryTab === "not-cranes" ? "crane_submission_attempts" : "crane_submissions")
     .update({ image_hidden: imageHiddenValue === "true" })
     .eq("id", submissionId)
     .eq("user_id", player.id)

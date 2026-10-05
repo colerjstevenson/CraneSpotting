@@ -36,7 +36,10 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
   useEffect(() => {
     const now = new Date();
     const nextUtcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
-    const timeout = window.setTimeout(() => router.refresh(), nextUtcMidnight - now.getTime() + 250);
+    const timeout = window.setTimeout(() => {
+      setAttemptsToday(0);
+      router.refresh();
+    }, nextUtcMidnight - now.getTime() + 250);
     return () => window.clearTimeout(timeout);
   }, [router]);
 
@@ -172,7 +175,8 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
         }
         setAttemptsToday(result.attemptsToday);
         setSuccess({ accepted: false, message: result.message, attemptsToday: result.attemptsToday, remainingSubmissions: result.remainingSubmissions });
-      } catch {
+      } catch (error) {
+        console.error("Crane submission action failed in the browser:", error);
         setMessage("Submission is unavailable right now. Please try again shortly.");
       }
     });
