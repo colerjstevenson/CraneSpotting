@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/safe-next-path";
+import { validEmail, verifyEmailCode } from "@/lib/supabase/email-code";
 
 export type AuthActionState = { status: "success" | "error"; message: string } | undefined;
 
@@ -12,10 +13,6 @@ function magicLinkRedirect(next: string) {
   const callback = new URL("/auth/confirm", appUrl);
   callback.searchParams.set("next", safeNextPath(next, "/"));
   return callback.toString();
-}
-
-function validEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function signupErrorMessage(code: string | undefined, message: string) {
@@ -50,7 +47,7 @@ export async function requestSignupLink(_state: AuthActionState, formData: FormD
   if (!isSupabaseConfigured()) return { status: "error", message: "Account sign-in is not configured yet." };
 
   try {
-    const supabase = await createClient();
+    const supabase = await createClient({ requireCookieWrites: true });
     const { data: existing } = await supabase
       .from("users")
       .select("id")
@@ -76,8 +73,9 @@ export async function requestSignupLink(_state: AuthActionState, formData: FormD
       });
       return { status: "error", message: signupErrorMessage(error.code, error.message) };
     }
-    return { status: "success", message: "Check your inbox for a link to finish joining Crane Spotting." };
-  } catch {
+    return { status: "success", message: "Check your inbox. Enter the code below to finish joining here, or use the email link." };
+  } catch (error) {
+    console.error("Signup email request unavailable", { name: error instanceof Error ? error.name : "UnknownError" });
     return { status: "error", message: "Account sign-in is unavailable right now. Check the Supabase setup and try again." };
   }
 }
@@ -90,16 +88,32 @@ export async function requestLoginLink(_state: AuthActionState, formData: FormDa
   if (!isSupabaseConfigured()) return { status: "error", message: "Account sign-in is not configured yet." };
 
   try {
-    const supabase = await createClient();
-    await supabase.auth.signInWithOtp({
+    const supabase = await createClient({ requireCookieWrites: true });
+    const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { shouldCreateUser: false, emailRedirectTo: magicLinkRedirect(next) },
     });
-  } catch {
-    return { status: "error", message: "We couldn't send a sign-in link right now. Try again shortly." };
+    if (error) {
+      console.error("Login email request failed", { code: error.code, status: error.status });
+      // Keep unknown accounts indistinguishable from successful requests.
+      if (!["signup_disabled", "otp_disabled", "user_not_found"].includes(error.code ?? "")) {
+        return { status: "error", message: "We couldn't send a sign-in email. Wait a few minutes, then try again." };
+      }
+    }
+  } catch (error) {
+    console.error("Login email request unavailable", { name: error instanceof Error ? error.name : "UnknownError" });
+    return { status: "error", message: "We couldn't send a sign-in email right now. Try again shortly." };
   }
 
-  return { status: "success", message: "If an account exists for that address, a sign-in link is on its way." };
+  return { status: "success", message: "If an account exists for that address, an email is on its way. Enter its code below to sign in here, or use the link." };
+}
+
+export async function confirmEmailCode(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  if (!isSupabaseConfigured()) return { status: "error", message: "Account sign-in is not configured yet." };
+
+  const result = await verifyEmailCode(formData, () => createClient({ requireCookieWrites: true }));
+  if (result.status === "error") return result;
+  redirect(result.next);
 }
 
 export async function signOut() {

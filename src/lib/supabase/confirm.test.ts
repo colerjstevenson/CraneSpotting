@@ -108,6 +108,8 @@ test("both email templates target token verification and preserve the return pat
   for (const name of ["magic-link", "confirm-signup"]) {
     const template = readFileSync(new URL(`../../../supabase/templates/${name}.html`, import.meta.url), "utf8");
     assert.ok(!template.includes("{{ .ConfirmationURL }}"));
+    assert.equal(template.split("{{ .Token }}").length - 1, 1);
+    assert.ok(template.includes("home-screen app"));
     const links = [...template.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
     assert.equal(links.length, 2);
     for (const link of links) {

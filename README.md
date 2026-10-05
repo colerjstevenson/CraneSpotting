@@ -1,6 +1,6 @@
 # Crane Spotting
 
-Crane Spotting is a mobile-first crane-spotting game. It uses Supabase email magic-link authentication, private photo storage, server-side crane analysis, and deterministic scoring. The leaderboard remains demo data until the live leaderboard step is completed.
+Crane Spotting is a mobile-first crane-spotting game. It uses Supabase email code and magic-link authentication, private photo storage, server-side crane analysis, and deterministic scoring. The leaderboard remains demo data until the live leaderboard step is completed.
 
 ## Requirements
 
@@ -40,11 +40,15 @@ In the Supabase dashboard, open **Authentication > Email Templates** and configu
 
 Copy each entire HTML file into its corresponding template body and save. These files are not automatically deployed by the app or database migrations. Keep email confirmation enabled for new accounts. Supabase selects Confirm sign up for a new user and Magic Link for an existing user, including an existing user requesting a link through the signup page.
 
+Both templates include `{{ .Token }}` as a one-time email code alongside the link. Home-screen apps may have cookies separate from the system browser, so following an email link does not necessarily sign in the installed app. Request the email inside the home-screen app on `/login` or `/signup`; after a successful request, the form switches to **Check your email** with code entry for that address. Return there from your mail app and enter the code. Verification writes the session cookie in that app and navigates to the requested page. **Change email or request a new code** returns to the request form with your details preserved. A full reload starts at the request step again. Codes support Supabase's 6-10 digit OTP setting. The code and link verify the same token: using either consumes it, so request a fresh email if the link was already opened. Re-paste both updated templates into Supabase before testing codes; deploying alone does not update delivered email content.
+
 Keep `{{ .RedirectTo }}&amp;token_hash={{ .TokenHash }}&amp;type=email` unchanged in both the button and fallback link. The app always supplies a `/auth/confirm?next=...` redirect, so the template appends the token hash with `&amp;`. Supabase verifies `type=email` for both signup and sign-in tokens, without requiring the original browser's PKCE verifier cookie. Set Supabase's Site URL to your public `APP_URL` and allow `https://your-site/auth/confirm` and `https://your-site/auth/confirm?next=**` in Redirect URLs (also allow the equivalent localhost URLs for development). Disable click tracking in your SMTP provider so authentication URLs are not rewritten. The templates deliberately avoid a fixed expiry time: Supabase's configured email OTP expiry determines link lifetime.
 
 If every link says it is invalid or expired, paste these updated bodies into **both** Supabase email templates and request a fresh email after deployment. Previously sent emails still use their original links. Callback failures log only an error code/status, never the link or token; inspect Worker logs if fresh links still fail. Email security scanners can consume single-use links, so also check the SMTP provider's link-scanning settings.
 
 Before publishing, request a link from `/signup` with a fresh address and another from `/login` with an existing account. Check the actual delivered emails on desktop and mobile, follow fresh links in both the original browser and a different browser with no existing site cookies, and verify each establishes a session and returns to the requested page (signup defaults to `/submit`). Also check that ignored, expired, and already-used links cannot sign in. A browser HTML preview checks layout only, not email-client compatibility or delivery.
+
+Also request fresh signup and login emails inside the saved home-screen app, switch to the mail app without opening the link, then return and enter the code. Confirm the app is signed in after a reload. Check invalid, expired, and reused codes show an error without navigating, and request a fresh email when retrying.
 
 Before sharing the app publicly, configure Supabase Auth email rate limits and CAPTCHA to reduce magic-link abuse.
 
@@ -77,7 +81,7 @@ In the Cloudflare dashboard, select the `cranespotting` Worker. Add only `SUPABA
 
 - `/` - Home screen and illustrative leaderboard preview.
 - `/leaderboard` - Demo standings, not live player data.
-- `/signup` and `/login` - Request a magic link for a new or existing account.
+- `/signup` and `/login` - Request an email code and magic link for a new or existing account, and verify the code in the current app.
 - `/auth/confirm` - Verify the emailed link and establish the session.
 - `/submit` - Protected camera flow; analyzes photos server-side and scores verified crane sightings.
 

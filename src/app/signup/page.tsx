@@ -11,7 +11,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
       <section className="page-intro" aria-labelledby="signup-title">
         <p className="page-kicker">NEW PLAYER / STEP RIGHT UP</p>
         <h1 className="page-title" id="signup-title">Join the<br />spotters!</h1>
-        <p className="page-description">Claim your name on the board. We’ll email you a sign-in link; no password to remember.</p>
+        <p className="page-description">Claim your name on the board. We’ll email you a sign-in code and link; no password to remember.</p>
       </section>
       <AuthForm mode="signup" next={safeNextPath(params.next, "/submit")} />
     </>

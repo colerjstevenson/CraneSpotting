@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <section className="page-intro" aria-labelledby="login-title">
         <p className="page-kicker">RETURNING PLAYER / WELCOME BACK</p>
         <h1 className="page-title" id="login-title">Back for<br />more?</h1>
-        <p className="page-description">Enter your email and we’ll send a fresh sign-in link.</p>
+        <p className="page-description">Enter your email and we’ll send a sign-in code and link. Use the code to stay in this app.</p>
       </section>
       <AuthForm mode="login" next={safeNextPath(params.next, "/")} notice={params.error ? loginNotices[params.error] : undefined} />
     </>
