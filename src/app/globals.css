@@ -270,6 +270,7 @@ body::before { display: none; }
 .rule-strip { border-top: 3px dashed var(--ink); border-bottom: 3px dashed var(--ink); }
 .rule-strip__heading, .rule-item { color: var(--ink); }
 .rule-item { border-left: 2px dashed var(--ink); }
+.home-install-tip { display: none; }
 .rule-number { color: #d72b58; letter-spacing: 0; }
 .site-footer { color: var(--ink); letter-spacing: 0; }
 .page-intro { padding-block: 56px 32px; }
@@ -484,6 +485,10 @@ body::before { display: none; }
 	.rule-item { min-height: 58px; gap: 6px; padding-left: 10px; font-size: 10px; }
 	.rule-item:first-of-type { border-left: 0; padding-left: 0; }
 	.rule-number { font-size: 8px; }
+	.home-install-tip { display: block; margin-top: 16px; padding: 13px 14px; border: 2px dashed var(--ink); background: var(--lime); }
+	.home-install-tip h2 { margin: 0 0 7px; font-family: var(--font-display), sans-serif; font-size: 18px; text-transform: uppercase; }
+	.home-install-tip p { margin: 0; font-size: 10px; font-weight: 500; line-height: 1.6; }
+	.home-install-tip strong { font-weight: 700; }
 	.site-footer { min-height: 65px; padding-bottom: 3px; font-size: 8px; }
 	.page-intro { padding-block: 43px 26px; }
 	.page-title { font-size: 60px; }

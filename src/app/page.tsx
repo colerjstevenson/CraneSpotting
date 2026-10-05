@@ -37,6 +37,10 @@ export default function Home() {
         <div className="rule-item"><span className="rule-number">02</span><span>Three crane submission<br />per day,that includes<br />non-cranes you attempt</span></div>
         <div className="rule-item"><span className="rule-number">03</span><span>Bird Cranes are <br />worth more than<br />construction cranes</span></div>
       </section>
+      <section className="home-install-tip" aria-labelledby="home-install-title">
+        <h2 id="home-install-title">Make it an app</h2>
+        <p><strong>iPhone (Safari):</strong> Tap Share, then Add to Home Screen.<br /><strong>Android (Chrome):</strong> Open the browser menu, then Install app or Add to Home screen.</p>
+      </section>
     </>
   );
 }
