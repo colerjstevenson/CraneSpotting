@@ -356,7 +356,7 @@ body::before { display: none; }
 .camera-quota__reset { margin-left: auto; }
 .camera-workbench { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.75fr); overflow: hidden; border: 3px solid var(--ink); background: var(--white); box-shadow: 8px 8px 0 var(--coral); }
 .camera-viewfinder { position: relative; display: grid; min-width: 0; aspect-ratio: 4 / 3; overflow: hidden; place-items: center; background: #201b32; }
-.camera-viewfinder video, .camera-photo-preview { width: 100%; height: 100%; object-fit: cover; }
+.camera-viewfinder video, .camera-photo-preview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .camera-photo-preview { background-position: center; background-repeat: no-repeat; background-size: cover; }
 .camera-viewfinder__empty { display: grid; justify-items: center; gap: 14px; color: var(--white); }
 .camera-viewfinder__empty span { color: var(--lime); font-size: 10px; font-weight: 700; }

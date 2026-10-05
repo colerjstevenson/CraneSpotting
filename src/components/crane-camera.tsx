@@ -85,21 +85,26 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
 
   async function capturePhoto() {
     const video = videoRef.current;
-    if (!video || !video.videoWidth || !video.videoHeight) {
+    if (!video || !video.videoWidth || !video.videoHeight || !video.clientWidth || !video.clientHeight) {
       setCameraError("The camera is still getting ready. Try again in a moment.");
       return;
     }
 
+    const previewScale = Math.max(video.clientWidth / video.videoWidth, video.clientHeight / video.videoHeight);
+    const cropWidth = video.clientWidth / previewScale;
+    const cropHeight = video.clientHeight / previewScale;
+    const cropLeft = (video.videoWidth - cropWidth) / 2;
+    const cropTop = (video.videoHeight - cropHeight) / 2;
     const canvas = document.createElement("canvas");
-    const scale = Math.min(1, 1920 / Math.max(video.videoWidth, video.videoHeight));
-    canvas.width = Math.round(video.videoWidth * scale);
-    canvas.height = Math.round(video.videoHeight * scale);
+    const scale = Math.min(1, 1920 / Math.max(cropWidth, cropHeight));
+    canvas.width = Math.round(cropWidth * scale);
+    canvas.height = Math.round(cropHeight * scale);
     const context = canvas.getContext("2d");
     if (!context) {
       setCameraError("We couldn't prepare that photo. Try again.");
       return;
     }
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    context.drawImage(video, cropLeft, cropTop, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
 
     try {
       let photoBlob: Blob | null = null;
@@ -108,7 +113,7 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
         if (photoBlob && photoBlob.size <= maxImageBytes) break;
         canvas.width = Math.round(canvas.width * 0.82);
         canvas.height = Math.round(canvas.height * 0.82);
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        context.drawImage(video, cropLeft, cropTop, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
       }
 
       if (!photoBlob || photoBlob.type !== "image/jpeg" || photoBlob.size > maxImageBytes) {
