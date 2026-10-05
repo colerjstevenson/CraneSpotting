@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: { default: "Crane Spotting", template: "%s | Crane Spotting" },
   description: "Look up. Spot cranes. Climb the Crane Spotting leaderboard.",
+  appleWebApp: { capable: true, title: "Crane Spotting", statusBarStyle: "default" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

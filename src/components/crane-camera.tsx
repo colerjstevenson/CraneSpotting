@@ -28,6 +28,7 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
   const [analysisPhoto, setAnalysisPhoto] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState("");
+  const [isOpening, setIsOpening] = useState(false);
   const [message, setMessage] = useState("");
   const [attemptsToday, setAttemptsToday] = useState(initialAttemptsToday);
   const [success, setSuccess] = useState<SubmissionSuccess | null>(null);
@@ -70,6 +71,7 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
       return;
     }
 
+    setIsOpening(true);
     try {
       const cameraStream = await navigator.mediaDevices.getUserMedia({
         audio: false,
@@ -77,9 +79,18 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
       });
       setStream(cameraStream);
     } catch (error) {
-      setCameraError(error instanceof DOMException && error.name === "NotAllowedError"
+      const errorName = error instanceof DOMException ? error.name : "";
+      setCameraError(errorName === "NotAllowedError"
         ? "Camera permission was denied. Allow camera access in your browser settings and try again."
-        : "We couldn't open the camera. Check that no other app is using it, then try again.");
+        : errorName === "NotFoundError"
+          ? "No camera was found on this device. Try submitting from a phone with a camera."
+          : errorName === "NotReadableError"
+            ? "The camera is already in use. Close other camera apps and try again."
+            : errorName === "OverconstrainedError"
+              ? "This camera couldn't use the requested settings. Try again or use another camera."
+              : "We couldn't open the camera. Check your browser permissions and try again.");
+    } finally {
+      setIsOpening(false);
     }
   }
 
@@ -252,8 +263,8 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
               </div>
             </>
           ) : (
-            <button className="camera-button camera-button--primary" type="button" onClick={openCamera} disabled={remaining === 0}>
-              <Camera size={18} aria-hidden="true" /> {remaining === 0 ? "No shots left today" : "Open camera"}
+            <button className="camera-button camera-button--primary" type="button" onClick={openCamera} disabled={remaining === 0 || isOpening}>
+              <Camera size={18} aria-hidden="true" /> {remaining === 0 ? "No shots left today" : isOpening ? "Opening camera..." : "Open camera"}
             </button>
           )}
           {cameraError && <p className="camera-feedback camera-feedback--error" role="alert">{cameraError}</p>}
