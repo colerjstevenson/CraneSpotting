@@ -16,6 +16,7 @@ export function AuthForm({ mode, next, notice }: AuthFormProps) {
   const action = mode === "signup" ? requestSignupLink : requestLoginLink;
   const [state, formAction, pending] = useActionState(action, initialState);
   const isSignup = mode === "signup";
+  const switchHref = `${isSignup ? "/login" : "/signup"}?next=${encodeURIComponent(next)}`;
 
   return (
     <section className="auth-panel" aria-labelledby="auth-form-title">
@@ -40,7 +41,7 @@ export function AuthForm({ mode, next, notice }: AuthFormProps) {
         </button>
         <p className="auth-switch">
           {isSignup ? "Already in the flock?" : "New to Crane Spotting?"}{" "}
-          <Link href={isSignup ? "/login" : "/signup"}>{isSignup ? "Log in" : "Create an account"}</Link>
+          <Link href={switchHref}>{isSignup ? "Log in" : "Create an account"}</Link>
         </p>
       </form>
     </section>

@@ -22,8 +22,8 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
           <AppHeader />
           <main id="main-content" className="site-main">{children}</main>
           <footer className="site-footer">
-            <span>BUILT FOR LOOKING UP.</span>
-            <span>CRANE SPOTTING / STEP 02</span>
+            <span>Crane!</span>
+            <span>CRANE SPOTTING</span>
           </footer>
         </div>
       </body>

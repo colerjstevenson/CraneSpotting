@@ -9,6 +9,7 @@ export default defineConfig({
     assets: { notFoundHandling: "none" },
     env: {
       ASSETS: bindings.assets(),
+      AI: bindings.ai(),
     },
   }),
 });

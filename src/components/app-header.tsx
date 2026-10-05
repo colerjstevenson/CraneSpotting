@@ -6,7 +6,7 @@ import { getCurrentPlayer } from "@/lib/auth";
 
 const navigation = [
   { href: "/", label: "Home", icon: House },
-  { href: "/leaderboard", label: "Global board", icon: Trophy },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/submit", label: "Submit", icon: Camera, submit: true },
 ];
 
@@ -20,11 +20,14 @@ export async function AppHeader() {
         <span className="brand-name">CRANE<small>SPOTTING</small></span>
       </Link>
       <div className="header-side">
-        <span className="season-label">GLOBAL DIVISION / FIELD EDITION</span>
         <div className="account-control">
           {player ? (
             <>
-              <span className="account-name">{player.displayName}</span>
+              {player.username ? (
+                <Link className="account-name" href={`/players/${player.username}`}>{player.displayName}</Link>
+              ) : (
+                <span className="account-name">{player.displayName}</span>
+              )}
               <form action={signOut}>
                 <button className="account-button" type="submit" aria-label="Sign out">
                   <LogOut size={16} aria-hidden="true" />

@@ -65,7 +65,7 @@ You've used all 3 crane submissions for today.
 Come back tomorrow.
 ```
 
-The limit resets at midnight.
+The limit resets at 00:00 UTC.
 
 ---
 
@@ -125,9 +125,11 @@ Examples include:
 
 * tower cranes
 * mobile cranes
-* crawler cranes
-* truck cranes
-* other construction equipment that is actually a crane
+
+### Crane artwork
+
+Physical paintings, sculptures, statues, illuminated installations, and other artwork depicting crane birds or construction cranes count when photographed in their real-world setting. They receive a small fixed artwork score, lower than a real crane. A screenshot or photo of a digital reproduction does not qualify as real-world artwork.
+
 
 ### Master Crane
 
@@ -617,45 +619,25 @@ Use real database data.
 
 ---
 
-## Step 6 — Camera submission
+## Steps 6-7 — Camera submission and image storage
 
-Build the mobile camera interface.
+Build the mobile camera interface and store each submitted photograph.
 
 The player should:
 
 1. Tap "Submit a Crane."
 2. Open the camera.
 3. Take a photograph.
-4. Review it.
+4. Review or retake it.
 5. Submit it.
 
-Implement the 3-per-day restriction.
+Enforce the three-per-day limit on the server, resetting at 00:00 UTC. For development, initially allow the analysis result to be mocked.
 
-For development, initially allow the analysis result to be mocked.
-
----
-
-## Step 7 — Image storage
-
-Add image storage.
-
-When a player submits a photograph:
-
-```text
-Camera
-↓
-Image
-↓
-Storage
-↓
-Database record
-```
-
-Do not store full image data inside PostgreSQL.
+Resize and compress photos before storage, with a maximum image size of 5 MB. Store images in private object storage and keep only the image path and submission details in PostgreSQL. Do not store full image data inside PostgreSQL.
 
 ---
 
-## Step 8 — AI integration
+## Step 8 — AI analysis and scoring
 
 Create a dedicated crane-analysis service.
 
@@ -667,11 +649,24 @@ analyzeCrane(image): CraneAnalysis
 
 Keep the implementation isolated from the rest of the application.
 
-The service should return structured crane classification data.
+The service should return structured crane classification data, including:
+
+* crane type, confidence, prominence, visibility, composition, and crane count
+* crane type may be `bird`, `construction`, `artwork`, `master_crane`, or `none`
+* capture context: direct real-world scene, physical display, digital reproduction, or uncertain
+* whether visible evidence suggests stock or reused photography
+
+Use visible evidence only; AI cannot prove where an image came from. Suspected stock photos and photos of existing pictures should earn reduced points. Apply an authenticity multiplier in the scoring function: 1.0 for a direct real-world scene, 0.5 for a physical display photographed in context (such as a poster), 0.25 for obvious digital/reused imagery, and 0.75 when context is uncertain.
+
+Master Crane only qualifies when represented physically in the real world and photographed in context. A photo of a physical poster can earn a reduced Master Crane bonus; a movie screenshot or isolated digital image is not a valid Master Crane spotting and receives no Master Crane points.
+
+Physical crane artwork (including paintings of birds or equipment and sculptures/installation art) receives a fixed +10 artwork score before the authenticity multiplier. It does not receive the normal bird or construction bonus, keeping it below real-crane scores.
+
+The server must validate the model response and calculate every score. The model must never supply the final score.
+
+Completed analyses that reject a photo (not a crane, confidence below 0.70, or a Master Crane digital reproduction) consume one daily attempt. Provider failures do not consume an attempt. Rejected photos are not retained and do not create a crane submission or affect player totals.
 
 ---
-
-## Step 9 — Scoring engine
 
 Implement a server-side scoring function:
 
@@ -688,7 +683,7 @@ The scoring engine should produce both:
 
 ---
 
-## Step 10 — Crane Report
+## Step 9 — Crane Report
 
 Create the results screen showing:
 
@@ -703,7 +698,7 @@ Make Master Crane visually special.
 
 ---
 
-## Step 11 — Profiles and crane gallery
+## Step 10 — Profiles and crane gallery
 
 Create user profiles showing:
 
@@ -712,22 +707,21 @@ Create user profiles showing:
 * number of submissions
 * best crane
 * crane gallery
+* the ability to hide or show each gallery photo without changing its score or the player's totals
 
 ---
 
-## Step 12 — Polish
+## Step 11 — Polish
 
 Add:
 
 * loading states
-* error handling
 * camera permission handling
-* empty states
 * animations
 * responsive design
-* PWA metadata
-* install-to-home-screen support
-* friendly error messages
+* install-to-home-screen support, with new icon using our crane svgs
+* the ability to Ch
+
 
 ---
 
