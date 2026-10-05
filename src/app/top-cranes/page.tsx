@@ -63,7 +63,7 @@ export default async function TopCranesPage() {
     <>
       <section className="page-intro" aria-labelledby="top-cranes-title">
         <h1 className="page-title" id="top-cranes-title">Hall of<br />Cranes</h1>
-        <p className="page-description">The five highest-scoring crane sightings of all time.</p>
+        <p className="page-description">The highest-scoring crane sightings of all time.</p>
       </section>
       <section className="top-cranes" aria-label="All-time top five crane submissions">
         <div className="top-cranes__banner"><Trophy size={17} aria-hidden="true" /><span>Top 5 Cranes all time</span><span>NO POINTS FOR SECOND PLACE</span></div>

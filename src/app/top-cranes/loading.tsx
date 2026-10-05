@@ -2,7 +2,6 @@ export default function TopCranesLoading() {
   return (
     <>
       <section className="page-intro" aria-hidden="true">
-        <p className="page-kicker">THE HEAVY HITTERS</p>
         <h1 className="page-title">HALL OF<br />CRANES</h1>
         <p className="page-description">The five highest-scoring crane sightings of all time.</p>
       </section>
