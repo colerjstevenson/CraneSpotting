@@ -2,7 +2,7 @@ import { bindings, defineConfig, defineWorker } from "cf/config";
 
 export default defineConfig({
   worker: defineWorker({
-    name: "crane-spotting",
+    name: "cranespotting",
     entrypoint: "vinext/server/fetch-handler",
     compatibilityDate: "2026-10-04",
     compatibilityFlags: ["nodejs_compat"],
