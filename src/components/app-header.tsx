@@ -16,7 +16,7 @@ export async function AppHeader() {
   return (
     <header className="site-header">
       <Link className="brand" href="/" aria-label="Crane Spotting home">
-        <span className="brand-mark"><Image src="/tower_crane.svg" alt="" width={26} height={26} /></span>
+        <span className="brand-mark"><Image src="/bird_crane.svg" alt="" width={26} height={26} /></span>
         <span className="brand-name">CRANE<small>SPOTTING</small></span>
       </Link>
       <div className="header-side">

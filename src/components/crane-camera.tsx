@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Check, FolderOpen, RotateCcw, Upload } from "lucide-react";
-import { submitCrane } from "@/app/actions/submissions";
+import { submitCrane, type SubmissionDiagnostic } from "@/app/actions/submissions";
 
 const dailyLimit = 3;
 const maxImageBytes = 5 * 1024 * 1024;
@@ -56,6 +56,34 @@ type SubmissionSuccess = {
   remainingSubmissions: number;
 };
 
+type SubmissionDiagnosticReport = {
+  requestId: string;
+  capturedAt: string;
+  elapsedMilliseconds: number;
+  source: "camera" | "file";
+  photo: { type: string; sizeBytes: number } | null;
+  analysisPhoto: { type: string; sizeBytes: number } | null;
+  outcome: "server_error" | "action_exception";
+  serverDiagnostic?: SubmissionDiagnostic;
+  clientError?: { name: string; message: string };
+};
+
+function redactDiagnosticMessage(message: string) {
+  return message
+    .replace(/data:[^,\s]+,[^\s]+/gi, "[image data omitted]")
+    .replace(/https?:\/\/[^\s"'`]+/gi, "[URL omitted]")
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[email omitted]")
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[token omitted]")
+    .slice(0, 300);
+}
+
+function describeClientError(error: unknown) {
+  if (error instanceof Error) {
+    return { name: error.name.slice(0, 80), message: redactDiagnosticMessage(error.message) || "(empty message)" };
+  }
+  return { name: typeof error, message: "A non-Error value was thrown." };
+}
+
 export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -70,6 +98,8 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
   const [message, setMessage] = useState("");
   const [attemptsToday, setAttemptsToday] = useState(initialAttemptsToday);
   const [success, setSuccess] = useState<SubmissionSuccess | null>(null);
+  const [diagnosticReport, setDiagnosticReport] = useState<SubmissionDiagnosticReport | null>(null);
+  const [diagnosticCopyMessage, setDiagnosticCopyMessage] = useState("");
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -215,17 +245,43 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
 
   function submitPhoto() {
     if (!photo || !analysisPhoto) return;
+    const requestId = crypto.randomUUID();
+    const startedAt = Date.now();
     const formData = new FormData();
     formData.set("image", photo);
     formData.set("analysisImage", analysisPhoto);
     formData.set("source", photoSource);
+    formData.set("diagnosticId", requestId);
     setMessage("");
+    setDiagnosticReport(null);
+    setDiagnosticCopyMessage("");
+
+    function createDiagnosticReport(
+      outcome: SubmissionDiagnosticReport["outcome"],
+      serverDiagnostic?: SubmissionDiagnostic,
+      clientError?: SubmissionDiagnosticReport["clientError"],
+    ): SubmissionDiagnosticReport {
+      return {
+        requestId,
+        capturedAt: new Date().toISOString(),
+        elapsedMilliseconds: Date.now() - startedAt,
+        source: photoSource,
+        photo: photo ? { type: photo.type, sizeBytes: photo.size } : null,
+        analysisPhoto: analysisPhoto ? { type: analysisPhoto.type, sizeBytes: analysisPhoto.size } : null,
+        outcome,
+        ...(serverDiagnostic ? { serverDiagnostic } : {}),
+        ...(clientError ? { clientError } : {}),
+      };
+    }
 
     startTransition(async () => {
       try {
         const result = await submitCrane(formData);
         if (result.status !== "success" && result.status !== "rejected") {
           setMessage(result.message);
+          if (result.status === "error") {
+            setDiagnosticReport(createDiagnosticReport("server_error", result.diagnostic));
+          }
           if (result.status === "limit") setAttemptsToday(dailyLimit);
           return;
         }
@@ -237,9 +293,20 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
         setSuccess({ accepted: false, message: result.message, attemptsToday: result.attemptsToday, remainingSubmissions: result.remainingSubmissions });
       } catch (error) {
         console.error("Crane submission action failed in the browser:", error);
+        setDiagnosticReport(createDiagnosticReport("action_exception", undefined, describeClientError(error)));
         setMessage("Submission is unavailable right now. Please try again shortly.");
       }
     });
+  }
+
+  async function copyDiagnosticReport() {
+    if (!diagnosticReport) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(diagnosticReport, null, 2));
+      setDiagnosticCopyMessage("Diagnostic report copied.");
+    } catch {
+      setDiagnosticCopyMessage("Copy is unavailable here. Select and copy the report below.");
+    }
   }
 
   function resetForAnotherPhoto() {
@@ -251,6 +318,8 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
     setSuccess(null);
     setMessage("");
     setCameraError("");
+    setDiagnosticReport(null);
+    setDiagnosticCopyMessage("");
   }
 
   const remaining = attemptsToday === null ? null : Math.max(0, dailyLimit - attemptsToday);
@@ -321,6 +390,17 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
           {previewUrl && photoSource === "file" && <p className="camera-feedback">File upload score multiplier: ×0.75 maximum.</p>}
           {cameraError && <p className="camera-feedback camera-feedback--error" role="alert">{cameraError}</p>}
           {message && <p className="camera-feedback camera-feedback--error" role="alert">{message}</p>}
+          {diagnosticReport && (
+            <details className="submission-diagnostics" open>
+              <summary>Temporary upload diagnostics</summary>
+              <p>This report contains request details and file sizes only; it does not contain the photo or credentials.</p>
+              <button className="camera-button camera-button--secondary" type="button" onClick={() => void copyDiagnosticReport()}>
+                Copy diagnostic report
+              </button>
+              {diagnosticCopyMessage && <p role="status">{diagnosticCopyMessage}</p>}
+              <pre>{JSON.stringify(diagnosticReport, null, 2)}</pre>
+            </details>
+          )}
           {remaining === null && <p className="camera-feedback" role="status">Daily count is unavailable; the server still checks the limit on submission.</p>}
         </div>
       </div>

@@ -380,6 +380,10 @@ body::before { display: none; }
 .camera-review-label { margin: 0; color: var(--muted); font-size: 9px; font-weight: 700; }
 .camera-feedback { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .camera-feedback--error { padding: 10px; border: 2px solid var(--ink); background: #ffc9e1; color: var(--ink); }
+.submission-diagnostics { display: grid; gap: 10px; padding: 12px; border: 2px solid var(--ink); background: var(--white); color: var(--ink); }
+.submission-diagnostics summary { cursor: pointer; font-size: 11px; font-weight: 700; }
+.submission-diagnostics p { margin: 0; font-size: 11px; line-height: 1.5; }
+.submission-diagnostics pre { max-height: 260px; margin: 0; overflow: auto; padding: 10px; background: #f3f5ee; font: 10px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; white-space: pre-wrap; }
 .camera-result { display: grid; gap: 10px; }
 .camera-result__heading { display: flex; align-items: center; gap: 8px; color: #226235; font-size: 11px; font-weight: 700; }
 .camera-result p { margin: 0; font-size: 11px; line-height: 1.45; }
