@@ -66,6 +66,14 @@ type SubmissionDiagnosticReport = {
   outcome: "server_error" | "action_exception";
   serverDiagnostic?: SubmissionDiagnostic;
   clientError?: { name: string; message: string };
+  serverActionResponse?: {
+    status: number;
+    statusText: string;
+    contentType: string | null;
+    redirected: boolean;
+    responseType: ResponseType;
+    path: string | null;
+  };
 };
 
 function redactDiagnosticMessage(message: string) {
@@ -255,6 +263,31 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
     setMessage("");
     setDiagnosticReport(null);
     setDiagnosticCopyMessage("");
+    let serverActionResponse: SubmissionDiagnosticReport["serverActionResponse"];
+    const originalFetch = window.fetch;
+    const diagnosticFetch: typeof window.fetch = async (input, init) => {
+      const headers = new Headers(input instanceof Request ? input.headers : undefined);
+      new Headers(init?.headers).forEach((value, name) => headers.set(name, value));
+      const isServerAction = headers.has("next-action");
+      const response = await originalFetch.call(window, input, init);
+      if (isServerAction) {
+        let path: string | null = null;
+        try {
+          path = new URL(response.url).pathname;
+        } catch {
+          path = null;
+        }
+        serverActionResponse = {
+          status: response.status,
+          statusText: response.statusText.slice(0, 120),
+          contentType: response.headers.get("content-type")?.slice(0, 120) ?? null,
+          redirected: response.redirected,
+          responseType: response.type,
+          path,
+        };
+      }
+      return response;
+    };
 
     function createDiagnosticReport(
       outcome: SubmissionDiagnosticReport["outcome"],
@@ -271,9 +304,11 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
         outcome,
         ...(serverDiagnostic ? { serverDiagnostic } : {}),
         ...(clientError ? { clientError } : {}),
+        ...(serverActionResponse ? { serverActionResponse } : {}),
       };
     }
 
+    window.fetch = diagnosticFetch;
     startTransition(async () => {
       try {
         const result = await submitCrane(formData);
@@ -295,6 +330,8 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
         console.error("Crane submission action failed in the browser:", error);
         setDiagnosticReport(createDiagnosticReport("action_exception", undefined, describeClientError(error)));
         setMessage("Submission is unavailable right now. Please try again shortly.");
+      } finally {
+        if (window.fetch === diagnosticFetch) window.fetch = originalFetch;
       }
     });
   }
