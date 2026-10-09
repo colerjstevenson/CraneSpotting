@@ -73,6 +73,9 @@ type SubmissionDiagnosticReport = {
     redirected: boolean;
     responseType: ResponseType;
     path: string | null;
+    cloudflareRayId: string | null;
+    server: string | null;
+    mitigation: string | null;
   };
 };
 
@@ -284,6 +287,9 @@ export function CraneCamera({ initialAttemptsToday }: CraneCameraProps) {
           redirected: response.redirected,
           responseType: response.type,
           path,
+          cloudflareRayId: response.headers.get("cf-ray"),
+          server: response.headers.get("server")?.slice(0, 120) ?? null,
+          mitigation: response.headers.get("cf-mitigated")?.slice(0, 120) ?? null,
         };
       }
       return response;
