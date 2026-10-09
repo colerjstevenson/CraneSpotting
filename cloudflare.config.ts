@@ -4,9 +4,11 @@ export default defineConfig({
   worker: defineWorker({
     name: "cranespotting",
     entrypoint: "vinext/server/fetch-handler",
+    domains: ["cranespotting.circle8animations.com"],
     compatibilityDate: "2026-10-04",
     compatibilityFlags: ["nodejs_compat"],
     assets: { notFoundHandling: "none" },
+    observability: { logs: { enabled: true } },
     env: {
       ASSETS: bindings.assets(),
       AI: bindings.ai({ dev: { remote: true } }),
