@@ -12,7 +12,7 @@ export default defineConfig({
       AI: bindings.ai({ dev: { remote: true } }),
       NEXT_PUBLIC_SUPABASE_URL: bindings.text("https://msjnmxicavgvkjzfvucc.supabase.co"),
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: bindings.text("sb_publishable_PbYvqJuQnglGlnTxvCrlKA_ugs3rHyD"),
-      APP_URL: bindings.text("https://cranespotting.colerjstevenson.workers.dev/"),
+      APP_URL: bindings.text("https://cranespotting.circle8animations.com"),
       SUPABASE_SERVICE_ROLE_KEY: bindings.secret(),
     },
   }),
