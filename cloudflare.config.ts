@@ -7,6 +7,8 @@ export default defineConfig({
     domains: ["cranespotting.circle8animations.com"],
     compatibilityDate: "2026-10-04",
     compatibilityFlags: ["nodejs_compat"],
+    workersDev: true,
+    previewUrls: true,
     assets: { notFoundHandling: "none" },
     observability: { logs: { enabled: true } },
     env: {
