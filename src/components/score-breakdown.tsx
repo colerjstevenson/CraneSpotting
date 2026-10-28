@@ -11,7 +11,7 @@ type ScoreBreakdownProps = {
 
 export function ScoreBreakdown({ breakdown, craneType, score, detailed = false, label }: ScoreBreakdownProps) {
   const calculation = getScoreCalculation(breakdown);
-  const entries = calculation?.entries.filter(([, value]) => detailed || value !== 0) ?? [];
+  const entries = calculation?.entries.filter(([key, value]) => (detailed || value !== 0) && (key !== "master_crane_bonus" || value !== 0)) ?? [];
   const multiplier = calculation?.multiplier;
 
   return (
