@@ -1,0 +1,37 @@
+[
+  {
+    "action": "block",
+    "clientASNDescription": "Bell Canada",
+    "clientAsn": "577",
+    "clientCountryName": "CA",
+    "clientIP": "184.145.223.38",
+    "clientRefererHost": "cranespotting.circle8animations.com",
+    "clientRequestHTTPHost": "cranespotting.circle8animations.com",
+    "clientRequestHTTPMethodName": "POST",
+    "clientRequestHTTPProtocol": "HTTP/3",
+    "clientRequestPath": "/submit",
+    "clientRequestQuery": "",
+    "contentScanObjTypes": [],
+    "datetime": "2026-10-09T20:25:35Z",
+    "description": "React - Leaking Server Functions - CVE:CVE-2025-55183",
+    "matchIndex": 0,
+    "metadata": [
+      {
+        "key": "ruleset_version",
+        "value": "74"
+      },
+      {
+        "key": "version",
+        "value": "3"
+      }
+    ],
+    "rayName": "a4801d89ba187114",
+    "ref": "d9bc06690e9fbba2c93c6a71dd17cf00",
+    "ruleId": "3114709a3c3b4e3685052c7b251e86aa",
+    "rulesetId": "77454fe2d30c4220b5701f6fdfb893ba",
+    "sampleInterval": 1,
+    "source": "firewallManaged",
+    "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1",
+    "zoneVersion": 0
+  }
+]

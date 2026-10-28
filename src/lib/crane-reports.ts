@@ -3,6 +3,7 @@ import { getLeaderboard } from "@/lib/leaderboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { CraneType } from "@/lib/crane-analysis-contract";
+import { parseScoreBreakdown } from "@/lib/score-breakdown";
 
 const bucket = "crane-submissions";
 
@@ -47,11 +48,7 @@ export async function getCraneReport(submissionId: string, playerId: string): Pr
     console.error("Failed to sign a crane report image:", error);
   }
 
-  const rawBreakdown = submission.score_breakdown as Record<string, unknown> | null;
-  const scoreBreakdown = Object.fromEntries(
-    Object.entries(rawBreakdown ?? {}).filter((entry): entry is [string, number] =>
-      typeof entry[1] === "number" && Number.isFinite(entry[1])),
-  );
+  const scoreBreakdown = parseScoreBreakdown(submission.score_breakdown);
   const rank = leaderboard.status === "ready"
     ? leaderboard.entries.find((entry) => entry.isCurrentPlayer)?.rank ?? null
     : null;

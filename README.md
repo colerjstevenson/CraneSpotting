@@ -25,6 +25,8 @@ Keep `SUPABASE_SERVICE_ROLE_KEY` server-only: never prefix it with `NEXT_PUBLIC_
 
 Player galleries have Cranes and Not Cranes tabs. Apply `20261004000800_rejected_submission_gallery.sql` before running the updated submission flow: rejected photos are now stored on submission attempts, without adding points or cranes to the leaderboard. Older rejected attempts remain visible with an unavailable-photo placeholder because their photos were not previously stored. Owners can hide photos in either tab.
 
+Click a visible photo or its card in either profile gallery tab or the Top Cranes list to open the full, uncropped image. Accepted sightings show their saved scoring factors, bonuses, and authenticity adjustment; rejected photos explain why no points were awarded. Hidden and unavailable photos cannot be opened. Close image details with the close button, Escape, or the backdrop. If a photo link expires, close the view and refresh the page.
+
 Email templates should link directly to `/auth/confirm` with Supabase's token hash so sign-in works even when the email opens in a different browser or device. The callback also supports older PKCE code links, which require the browser that requested them. The profile trigger stores the signup username and display name; public profile reads are enabled for future leaderboard use.
 
 ### Branded authentication emails

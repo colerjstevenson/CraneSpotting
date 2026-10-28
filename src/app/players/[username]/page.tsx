@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { SubmissionVisibilityControl } from "@/components/submission-visibility-control";
+import { SubmissionDetail } from "@/components/submission-detail";
 import { getCurrentPlayer } from "@/lib/auth";
 import type { CraneType } from "@/lib/crane-analysis-contract";
 import { getPlayerProfile, type PlayerGalleryTab, type PlayerProfile } from "@/lib/player-profiles";
@@ -86,6 +87,15 @@ function ProfileGallery({ profile, owner }: { profile: PlayerProfile; owner: boo
 
             return (
               <article className="player-gallery__item" key={submission.id}>
+                <SubmissionDetail
+                  imageUrl={submission.imageUrl}
+                  title={craneTitles[submission.craneType]}
+                  craneType={submission.craneType}
+                  score={submission.score}
+                  scoreBreakdown={submission.scoreBreakdown}
+                  createdAt={submission.createdAt}
+                  rejectionReason={notCranes ? rejectionTitles[submission.rejectionReason ?? ""] ?? "Rejected submission" : null}
+                />
                 <div className={`player-gallery__image${submission.imageUrl ? "" : " player-gallery__image--placeholder"}`}>
                   {submission.craneType === "none" && !submission.imageUrl ? (
                     <ImageOff size={48} aria-hidden="true" />

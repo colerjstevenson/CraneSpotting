@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ImageOff, Trophy } from "lucide-react";
 import { getTopCranes, type TopCrane } from "@/lib/top-cranes";
+import { SubmissionDetail } from "@/components/submission-detail";
 
 export const metadata: Metadata = { title: "Top 5 Cranes" };
 
@@ -30,6 +31,14 @@ function CraneCard({ crane, rank }: { crane: TopCrane; rank: number }) {
 
   return (
     <li className={`top-crane-card${rank === 1 ? " top-crane-card--champion" : ""}`}>
+      <SubmissionDetail
+        imageUrl={crane.imageUrl}
+        title={craneTitles[crane.craneType]}
+        craneType={crane.craneType}
+        score={crane.score}
+        scoreBreakdown={crane.scoreBreakdown}
+        createdAt={crane.createdAt}
+      />
       <div className={`top-crane-card__image${crane.imageUrl ? "" : " top-crane-card__image--placeholder"}`}>
         {crane.imageUrl ? (
           <Image

@@ -2,6 +2,7 @@ import "server-only";
 import type { CraneType } from "@/lib/crane-analysis-contract";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { parseScoreBreakdown } from "@/lib/score-breakdown";
 
 const bucket = "crane-submissions";
 
@@ -12,6 +13,7 @@ type SubmissionRow = {
   image_hidden: boolean;
   crane_type: Exclude<CraneType, "none">;
   score: number | string;
+  score_breakdown: unknown;
   created_at: string;
 };
 
@@ -27,6 +29,7 @@ export type TopCrane = {
   playerName: string;
   craneType: Exclude<CraneType, "none">;
   score: number;
+  scoreBreakdown: Record<string, number>;
   createdAt: string;
   imageUrl: string | null;
 };
@@ -42,7 +45,7 @@ export async function getTopCranes(): Promise<TopCraneResult> {
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("crane_submissions")
-      .select("id, user_id, image_url, image_hidden, crane_type, score, created_at")
+      .select("id, user_id, image_url, image_hidden, crane_type, score, score_breakdown, created_at")
       .order("score", { ascending: false })
       .order("created_at", { ascending: true })
       .order("id", { ascending: true })
@@ -90,6 +93,7 @@ export async function getTopCranes(): Promise<TopCraneResult> {
         playerName: player?.display_name ?? "Crane Spotter",
         craneType: submission.crane_type,
         score: Number(submission.score),
+        scoreBreakdown: parseScoreBreakdown(submission.score_breakdown),
         createdAt: submission.created_at,
         imageUrl,
       };

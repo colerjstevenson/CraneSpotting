@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Camera, Crown, Sparkles, Trophy } from "lucide-react";
 import type { CraneReport } from "@/lib/crane-reports";
+import { ScoreBreakdown } from "@/components/score-breakdown";
 
 type CraneReportViewProps = {
   report: CraneReport;
@@ -14,24 +15,6 @@ const craneTitles: Record<CraneReport["craneType"], string> = {
   master_crane: "MASTER CRANE",
 };
 
-const breakdownTitles: Record<string, string> = {
-  base_crane: "Base crane",
-  crane_type_bonus: "Crane type bonus",
-  prominence_bonus: "Large / prominent",
-  full_crane_visible_bonus: "Full crane visible",
-  interesting_composition_bonus: "Interesting composition",
-  additional_cranes_bonus: "Additional cranes",
-  master_crane_bonus: "Master Crane bonus",
-  crane_artwork_points: "Crane artwork",
-};
-
-function formatBreakdownTitle(key: string, craneType: CraneReport["craneType"]) {
-  if (key === "crane_type_bonus") {
-    return craneType === "bird" ? "Bird crane" : "Construction crane";
-  }
-  return breakdownTitles[key] ?? key.replaceAll("_", " ");
-}
-
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-US", {
     day: "numeric",
@@ -42,9 +25,6 @@ function formatDate(value: string) {
 }
 
 export function CraneReportView({ report }: CraneReportViewProps) {
-  const pointEntries = Object.entries(report.scoreBreakdown)
-    .filter(([key, value]) => key !== "authenticity_multiplier" && value !== 0);
-  const authenticityMultiplier = report.scoreBreakdown.authenticity_multiplier;
   const isMasterCrane = report.craneType === "master_crane";
   const remaining = report.remainingSubmissions;
 
@@ -92,29 +72,7 @@ export function CraneReportView({ report }: CraneReportViewProps) {
             </div>
           </div>
 
-          <section className="crane-report__breakdown" aria-labelledby="breakdown-title">
-            <div className="crane-report__section-heading">
-              <h2 id="breakdown-title">SCORE BREAKDOWN</h2>
-              <span>{craneTitles[report.craneType]}</span>
-            </div>
-            {pointEntries.length > 0 ? (
-              <ul>
-                {pointEntries.map(([key, value]) => (
-                  <li key={key}>
-                    <span>{formatBreakdownTitle(key, report.craneType)}</span>
-                    <strong>+{value.toLocaleString("en-US")}</strong>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="crane-report__no-breakdown">This sighting earned its points in one decisive move.</p>
-            )}
-            {typeof authenticityMultiplier === "number" && authenticityMultiplier !== 1 && (
-              <p className="crane-report__multiplier">
-                Point subtotal adjusted by an authenticity factor of ×{authenticityMultiplier.toLocaleString("en-US", { maximumFractionDigits: 2 })}.
-              </p>
-            )}
-          </section>
+          <ScoreBreakdown breakdown={report.scoreBreakdown} craneType={report.craneType} score={report.score} label={craneTitles[report.craneType]} />
 
           <nav className="crane-report__actions" aria-label="Report actions">
             {remaining !== null && remaining > 0 ? (

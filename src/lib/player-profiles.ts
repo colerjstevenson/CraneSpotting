@@ -3,6 +3,7 @@ import { getLeaderboard } from "@/lib/leaderboard";
 import type { CraneType } from "@/lib/crane-analysis-contract";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { parseScoreBreakdown } from "@/lib/score-breakdown";
 
 const bucket = "crane-submissions";
 const pageSize = 12;
@@ -14,6 +15,7 @@ type SubmissionRow = {
   crane_type?: Exclude<CraneType, "none">;
   rejection_reason?: string;
   score: number | string;
+  score_breakdown?: unknown;
   created_at: string;
 };
 
@@ -22,6 +24,7 @@ export type PlayerProfileSubmission = {
   craneType: CraneType;
   rejectionReason: string | null;
   score: number;
+  scoreBreakdown: Record<string, number>;
   createdAt: string;
   imageHidden: boolean;
   imageUrl: string | null;
@@ -76,7 +79,7 @@ export async function getPlayerProfile(username: string, page: number, galleryTa
         .select("id, image_url, image_hidden, rejection_reason, created_at", { count: "exact" })
         .eq("outcome", "rejected")
       : admin.from("crane_submissions")
-        .select("id, image_url, image_hidden, crane_type, score, created_at", { count: "exact" });
+        .select("id, image_url, image_hidden, crane_type, score, score_breakdown, created_at", { count: "exact" });
     const [bestResult, submissionsResult] = await Promise.all([
       admin
         .from("crane_submissions")
@@ -117,6 +120,7 @@ export async function getPlayerProfile(username: string, page: number, galleryTa
         craneType: row.crane_type ?? "none",
         rejectionReason: row.rejection_reason ?? null,
         score: Number(row.score ?? 0),
+        scoreBreakdown: parseScoreBreakdown(row.score_breakdown),
         createdAt: row.created_at,
         imageHidden: row.image_hidden,
         imageUrl,
