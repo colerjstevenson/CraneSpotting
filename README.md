@@ -1,6 +1,6 @@
 # Crane Spotting
 
-Crane Spotting is a mobile-first crane-spotting game. It uses Supabase email code and magic-link authentication, private photo storage, server-side crane analysis, and deterministic scoring. The leaderboard remains demo data until the live leaderboard step is completed.
+Crane Spotting is a mobile-first crane-spotting game. It uses Supabase email code and magic-link authentication, private photo storage, server-side crane analysis, deterministic scoring, and a live player leaderboard.
 
 ## Requirements
 
@@ -82,9 +82,11 @@ In the Cloudflare dashboard, select the `cranespotting` Worker. Add only `SUPABA
 ## Routes
 
 - `/` - Home screen and illustrative leaderboard preview.
-- `/leaderboard` - Demo standings, not live player data.
+- `/leaderboard` - Live player standings with sortable rank, player, cranes, points, and average points per crane columns.
 - `/signup` and `/login` - Request an email code and magic link for a new or existing account, and verify the code in the current app.
 - `/auth/confirm` - Verify the emailed link and establish the session.
 - `/submit` - Protected camera flow; analyzes photos server-side and scores verified crane sightings.
 
-The example standings are presentation-only data. Submission scores are calculated on the server, and completed analyses count toward the daily attempt limit; rejected photos do not become crane submissions.
+The leaderboard defaults to total points, highest first. Click any column header to sort, then click it again to reverse direction; official rank numbers remain based on total points. Cranes counts accepted submissions, not individual cranes within a photo. Average points per crane is total points divided by accepted submissions, displayed to one decimal place; players with no cranes show a dash and sort last by average in either direction. All columns remain visible on mobile without horizontal scrolling.
+
+Submission scores are calculated on the server, and completed analyses count toward the daily attempt limit; rejected photos do not become crane submissions.
